@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Сборка для Docker: .next/standalone содержит сервер и только нужные
+  // зависимости. Vercel эту настройку игнорирует.
+  output: "standalone",
   // Включаем позже, на этапе 12 (performance), осознанно и по маршрутам:
   // cacheComponents: true,
   // partialPrefetching: true,

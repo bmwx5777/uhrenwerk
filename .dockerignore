@@ -1,0 +1,17 @@
+node_modules
+.next
+.git
+.vscode
+.idea
+coverage
+*.tsbuildinfo
+next-env.d.ts
+
+# Секреты не должны попадать в образ: переменные передаются при запуске.
+.env
+.env.*
+!.env.example
+
+# Загруженные фото живут в томе, а не в образе.
+public/uploads
+postgres-data

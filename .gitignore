@@ -55,3 +55,4 @@ postgres-data
 
 # загруженные через админку изображения
 public/uploads
+!.env.production.example

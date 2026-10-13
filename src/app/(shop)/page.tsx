@@ -52,16 +52,6 @@ const ENTRY_POINTS = [
   },
 ] as const;
 
-/**
- * Данные каталога меняются вместе со складом, поэтому страница
- * перегенерируется не только при сборке.
- *
- * На этапе 10 (админка) это заменится адресной инвалидацией:
- * revalidateTag("catalog") при изменении товара — тогда обновление
- * будет мгновенным, а не по таймеру.
- */
-export const revalidate = 300;
-
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
   description:

@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { connection } from "next/server";
 
 import { appUrl } from "@/lib/env/client";
 import {
@@ -12,8 +13,8 @@ import {
  * Товары и бренды берутся запросом, а не перечисляются руками: добавили
  * часы в админке — они появились в карте. `lastModified` у товара — дата
  * изменения, по ней поисковик понимает, что стоит переобойти.
+ * Строится при запросе: при сборке рабочей базы нет.
  */
-export const revalidate = 3600;
 
 const STATIC_ROUTES: Array<{
   path: string;
@@ -31,6 +32,8 @@ const STATIC_ROUTES: Array<{
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  await connection();
+
   // Берём с запасом: при росте каталога понадобится разбивка на части
   // (лимит одного файла — 50 000 адресов).
   const [products, brands] = await Promise.all([

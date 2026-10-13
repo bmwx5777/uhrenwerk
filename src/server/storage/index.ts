@@ -1,6 +1,6 @@
 import "server-only";
 
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 /**
@@ -93,4 +93,41 @@ export async function storeImage(
     key,
     sizeBytes: bytes.byteLength,
   };
+}
+
+const CONTENT_TYPES: Record<string, string> = {
+  jpg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  avif: "image/avif",
+};
+
+/** Имя, которое выдаёт storeImage: UUID и одно из наших расширений. */
+const KEY_PATTERN = /^[0-9a-f-]{36}\.(jpg|png|webp|avif)$/;
+
+/**
+ * Прочитать сохранённое изображение по имени.
+ *
+ * Next в production отдаёт из `public` только файлы, существовавшие при
+ * сборке, а фото из админки появляются позже. Без этого чтения картинки
+ * через `next/image` отвечали бы 404.
+ *
+ * Имя проверяется по шаблону до обращения к диску: «../» и прочие пути
+ * за пределы каталога просто не пройдут.
+ */
+export async function readStoredImage(
+  key: string,
+): Promise<{ bytes: Buffer; contentType: string } | null> {
+  const match = KEY_PATTERN.exec(key);
+  if (!match) return null;
+
+  try {
+    const bytes = await readFile(path.join(UPLOAD_DIR, key));
+    return {
+      bytes,
+      contentType: CONTENT_TYPES[match[1] ?? ""] ?? "application/octet-stream",
+    };
+  } catch {
+    return null;
+  }
 }

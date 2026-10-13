@@ -11,16 +11,6 @@ export const metadata: Metadata = {
     "Мануфактуры в каталоге UHRENWERK: Rolex, Omega, Grand Seiko, Jaeger-LeCoultre, Tudor и IWC. История марок и доступные модели с проверкой подлинности.",
 };
 
-/**
- * Данные каталога меняются вместе со складом, поэтому страница
- * перегенерируется не только при сборке.
- *
- * На этапе 10 (админка) это заменится адресной инвалидацией:
- * revalidateTag("catalog") при изменении товара — тогда обновление
- * будет мгновенным, а не по таймеру.
- */
-export const revalidate = 300;
-
 const COUNTRY_LABELS: Record<string, string> = {
   CH: "Швейцария",
   JP: "Япония",

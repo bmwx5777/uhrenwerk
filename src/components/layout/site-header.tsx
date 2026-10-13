@@ -1,5 +1,6 @@
 import { BadgeCheck, PackageCheck, RotateCcw } from "lucide-react";
 import Link from "next/link";
+import { connection } from "next/server";
 
 import { MAIN_NAV } from "@/lib/constants/nav";
 import { listBrandsWithCounts } from "@/server/services/catalog";
@@ -26,8 +27,13 @@ const ASSURANCES = [
  * Список брендов нужен и выпадающему меню, и подсказкам поиска. Запрос
  * обёрнут в `cache()`, поэтому страница каталога, которая просит тот же
  * список, не вызовет второго обращения к базе.
+ *
+ * `connection()` — бренды читаются при запросе, а не при сборке. Иначе
+ * статические страницы (доставка, возврат, 404) навсегда запомнили бы меню
+ * на момент сборки, а сама сборка требовала бы доступа к рабочей базе.
  */
 export async function SiteHeader() {
+  await connection();
   const brands = await listBrandsWithCounts();
 
   return (

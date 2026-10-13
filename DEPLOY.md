@@ -5,6 +5,71 @@
 привязано к Vercel: это обычный Node-сервер, его можно запустить где
 угодно, где есть Node 20.9+ и доступ к Postgres.
 
+## 0. Свой сервер — быстрый путь
+
+Всё для запуска на одном VPS уже в репозитории: [Dockerfile](Dockerfile),
+[docker-compose.prod.yml](docker-compose.prod.yml) и [Caddyfile](Caddyfile).
+Одна команда поднимает базу, миграции, приложение, HTTPS (сертификат
+Let's Encrypt получается и продлевается сам) и задачу снятия резервов.
+Разделы ниже нужны, если разворачивать по-другому.
+
+**Что нужно заранее**
+
+- VPS с Ubuntu 24.04, от 2 ГБ памяти (Hetzner CX22, DigitalOcean и т.п.);
+- домен, у которого A-запись (и `www`) указывает на IP сервера;
+- ключ [Resend](https://resend.com) с подтверждённым доменом отправителя.
+  Без него не уйдёт письмо подтверждения при регистрации, а в production
+  отправка без ключа падает — покупатели не смогут зарегистрироваться;
+- банковские реквизиты для оплаты переводом.
+
+**Первый запуск**
+
+```bash
+# на сервере, один раз
+curl -fsSL https://get.docker.com | sh
+git clone <адрес репозитория> uhrenwerk && cd uhrenwerk
+
+cp .env.production.example .env.production
+nano .env.production        # заполнить; секреты — командами из комментариев
+
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+```
+
+Через минуту сайт открывается по `https://<домен>`. Порты 80 и 443
+должны быть открыты в фаерволе: по 80-му Let's Encrypt проверяет домен.
+
+**Администратор.** Зарегистрируйтесь на сайте обычным образом, затем:
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.production   run --rm --no-deps migrate npx tsx scripts/promote-admin.mts ваш@email
+```
+
+Демо-данные (`db:seed`) на рабочий сервер не заливаются: товары и бренды
+заводятся из админки.
+
+**Обновление** — та же команда после `git pull`. Миграции применяются
+отдельным шагом до старта нового приложения:
+
+```bash
+git pull
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+```
+
+**Логи:** `docker compose -f docker-compose.prod.yml logs -f app`.
+
+**Бэкап базы** (положить в cron сервера и хранить копии вне его):
+
+```bash
+docker compose -f docker-compose.prod.yml exec -T postgres   pg_dump -U uhrenwerk uhrenwerk | gzip > backup-$(date +%F).sql.gz
+```
+
+Загруженные фото лежат в томе `uhrenwerk_uploads` — его тоже стоит
+копировать.
+
+`NEXT_PUBLIC_APP_URL` собирается из `DOMAIN` и вшивается в код при
+сборке: после смены домена нужна пересборка (`up -d --build`), простого
+перезапуска мало.
+
 ## 1. База данных
 
 Подойдёт любой управляемый Postgres **версии 13 и выше** (в схеме
@@ -77,9 +142,11 @@ npm run build
 npm start
 ```
 
-На Vercel команды подставляются сами. Для контейнера пригодится
-`output: "standalone"` в [next.config.ts](next.config.ts) — он уменьшает
-образ, но для Vercel не нужен.
+На Vercel команды подставляются сами. Для контейнера включён
+`output: "standalone"` в [next.config.ts](next.config.ts) — образ
+получается меньше; Vercel эту настройку игнорирует.
+
+Сборке база не нужна: всё, что читает каталог, рендерится при запросе.
 
 ## 4a. Задача по расписанию
 
@@ -137,7 +204,10 @@ Authorization: Bearer $CRON_SECRET
 ## 6. Хранилище изображений
 
 Загрузка фотографий из админки работает: файлы сохраняются в
-`public/uploads/products` и отдаются как обычная статика. Проверяются
+`public/uploads/products`. Next в production не отдаёт из `public` файлы,
+появившиеся после сборки, поэтому их отдаёт обработчик
+[src/app/uploads/products/[key]/route.ts](src/app/uploads/products/[key]/route.ts),
+а на своём сервере — ещё и Caddy напрямую из тома. Проверяются
 роль, размер (до 8 МБ) и подпись файла — расширению и Content-Type
 из браузера код не верит.
 

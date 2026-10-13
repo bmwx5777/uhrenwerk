@@ -49,17 +49,23 @@ const serverEnvSchema = z.object({
   BANK_NAME: z.string().min(1).optional(),
 });
 
+/**
+ * Пустая строка — то же, что «не задано». Docker Compose и панели хостинга
+ * передают незаполненную переменную как "", а не убирают её.
+ */
+const read = (name: string) => process.env[name] || undefined;
+
 const parsed = serverEnvSchema.safeParse({
   NODE_ENV: process.env.NODE_ENV,
-  DATABASE_URL: process.env.DATABASE_URL,
-  BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
-  RESEND_API_KEY: process.env.RESEND_API_KEY,
-  EMAIL_FROM: process.env.EMAIL_FROM,
-  CRON_SECRET: process.env.CRON_SECRET,
-  BANK_BENEFICIARY: process.env.BANK_BENEFICIARY,
-  BANK_IBAN: process.env.BANK_IBAN,
-  BANK_BIC: process.env.BANK_BIC,
-  BANK_NAME: process.env.BANK_NAME,
+  DATABASE_URL: read("DATABASE_URL"),
+  BETTER_AUTH_SECRET: read("BETTER_AUTH_SECRET"),
+  RESEND_API_KEY: read("RESEND_API_KEY"),
+  EMAIL_FROM: read("EMAIL_FROM"),
+  CRON_SECRET: read("CRON_SECRET"),
+  BANK_BENEFICIARY: read("BANK_BENEFICIARY"),
+  BANK_IBAN: read("BANK_IBAN"),
+  BANK_BIC: read("BANK_BIC"),
+  BANK_NAME: read("BANK_NAME"),
 });
 
 if (!parsed.success) {
